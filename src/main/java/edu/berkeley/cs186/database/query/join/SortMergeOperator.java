@@ -20,8 +20,8 @@ public class SortMergeOperator extends JoinOperator {
                              String rightColumnName,
                              TransactionContext transaction) {
         super(prepareLeft(transaction, leftSource, leftColumnName),
-              prepareRight(transaction, rightSource, rightColumnName),
-              leftColumnName, rightColumnName, transaction, JoinType.SORTMERGE);
+                prepareRight(transaction, rightSource, rightColumnName),
+                leftColumnName, rightColumnName, transaction, JoinType.SORTMERGE);
         this.stats = this.estimateStats();
     }
 
@@ -87,10 +87,10 @@ public class SortMergeOperator extends JoinOperator {
      */
     private class SortMergeIterator implements Iterator<Record> {
         /**
-        * Some member variables are provided for guidance, but there are many possible solutions.
-        * You should implement the solution that's best for you, using any member variables you need.
-        * You're free to use these member variables, but you're not obligated to.
-        */
+         * Some member variables are provided for guidance, but there are many possible solutions.
+         * You should implement the solution that's best for you, using any member variables you need.
+         * You're free to use these member variables, but you're not obligated to.
+         */
         private Iterator<Record> leftIterator;
         private BacktrackingIterator<Record> rightIterator;
         private Record leftRecord;
@@ -141,7 +141,6 @@ public class SortMergeOperator extends JoinOperator {
         private Record fetchNextRecord() {
             while (leftRecord != null) {
                 if (rightRecord != null && !marked) {
-                    // advance the lesser until get to a match
                     while (compare(leftRecord, rightRecord) < 0) {
                         if (leftIterator.hasNext()) {
                             this.leftRecord = leftIterator.next();
@@ -159,26 +158,22 @@ public class SortMergeOperator extends JoinOperator {
                         }
                     }
 
-                    // mark beginning of matching right records
                     this.rightIterator.markPrev();
                     this.marked = true;
                 }
 
                 if (rightRecord != null && compare(leftRecord, rightRecord) == 0) {
-                    // there's a next right record, join it if there's a match
-                    Record result = this.leftRecord.concat(rightRecord);
+                    Record match = this.leftRecord.concat(rightRecord);
                     this.rightRecord = rightIterator.hasNext() ? rightIterator.next() : null;
-                    return result;
+                    return match;
                 } else {
-                    // there's no more matching right records, reset right and advance left
                     this.leftRecord = leftIterator.hasNext() ? leftIterator.next() : null;
                     this.rightIterator.reset();
                     this.marked = false;
-                    this.rightRecord = this.rightIterator.next();
+                    this.rightRecord = rightIterator.hasNext() ? rightIterator.next() : null;
                 }
             }
 
-            // The left source was empty, nothing to fetch
             return null;
         }
 
