@@ -162,11 +162,15 @@ public class SortOperator extends QueryOperator {
     public List<Run> mergePass(List<Run> runs) {
         // TODO(proj3_part1): implement
         List<Run> mergeRun = new ArrayList<>();
-        for (int i = 0; numBuffers + i - 1 <= runs.size() + 1; i += numBuffers - 1) {
-            List<Run> mergeAdd = runs.subList(i, Math.min(runs.size(), numBuffers + i - 1));
-            mergeRun.add(mergeSortedRuns(mergeAdd));
+        List<Run> run = new ArrayList<>();
+        while (!runs.isEmpty()) {
+            while (!runs.isEmpty() && mergeRun.size() < numBuffers - 1) {
+                mergeRun.add(runs.remove(0));
+            }
+            run.add(mergeSortedRuns(mergeRun));
+            mergeRun.clear();
         }
-        return mergeRun;
+        return run;
     }
 
     /**
