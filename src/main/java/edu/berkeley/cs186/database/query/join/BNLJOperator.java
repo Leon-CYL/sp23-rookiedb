@@ -40,7 +40,7 @@ public class BNLJOperator extends JoinOperator {
         int numLeftPages = getLeftSource().estimateStats().getNumPages();
         int numRightPages = getRightSource().estimateIOCost();
         return ((int) Math.ceil((double) numLeftPages / (double) usableBuffers)) * numRightPages +
-               getLeftSource().estimateIOCost();
+                getLeftSource().estimateIOCost();
     }
 
     /**
@@ -61,7 +61,6 @@ public class BNLJOperator extends JoinOperator {
         private Record leftRecord;
         // The next record to return
         private Record nextRecord;
-
 
         private BNLJIterator() {
             super();
@@ -128,21 +127,20 @@ public class BNLJOperator extends JoinOperator {
             if (leftRecord == null) {
                 return null;
             }
-
             while (true) {
                 if (rightPageIterator.hasNext()) {
                     Record rightRecord = rightPageIterator.next();
-                    if (compare(rightRecord, leftRecord) == 0) {
+                    if (compare(leftRecord, rightRecord) == 0) {
                         return leftRecord.concat(rightRecord);
                     }
                 } else if (leftBlockIterator.hasNext()) {
-                    leftRecord = leftBlockIterator.next();
                     rightPageIterator.reset();
+                    leftRecord = leftBlockIterator.next();
                 } else if (rightSourceIterator.hasNext()) {
-                    fetchNextRightPage();
                     leftBlockIterator.reset();
                     leftRecord = leftBlockIterator.next();
-                } else if (leftSourceIterator.hasNext()) {
+                    fetchNextRightPage();
+                } else if (leftSourceIterator.hasNext()){
                     fetchNextLeftBlock();
                     rightSourceIterator.reset();
                     fetchNextRightPage();
