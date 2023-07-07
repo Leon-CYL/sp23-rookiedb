@@ -1,225 +1,191 @@
-package edu.berkeley.cs186.database.query;
+package edu.berkeley.cs186.database.query.join;
 
 import edu.berkeley.cs186.database.TransactionContext;
-import edu.berkeley.cs186.database.common.Pair;
 import edu.berkeley.cs186.database.common.iterator.BacktrackingIterator;
-import edu.berkeley.cs186.database.query.disk.Run;
+import edu.berkeley.cs186.database.query.JoinOperator;
+import edu.berkeley.cs186.database.query.MaterializeOperator;
+import edu.berkeley.cs186.database.query.QueryOperator;
+import edu.berkeley.cs186.database.query.SortOperator;
 import edu.berkeley.cs186.database.table.Record;
-import edu.berkeley.cs186.database.table.Schema;
-import edu.berkeley.cs186.database.table.stats.TableStats;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 
-public class SortOperator extends QueryOperator {
-    protected Comparator<Record> comparator;
-    private TransactionContext transaction;
-    private Run sortedRecords;
-    private int numBuffers;
-    private int sortColumnIndex;
-    private String sortColumnName;
-
-    public SortOperator(TransactionContext transaction, QueryOperator source,
-                        String columnName) {
-        super(OperatorType.SORT, source);
-        this.transaction = transaction;
-        this.numBuffers = this.transaction.getWorkMemSize();
-        this.sortColumnIndex = getSchema().findField(columnName);
-        this.sortColumnName = getSchema().getFieldName(this.sortColumnIndex);
-        this.comparator = new RecordComparator();
+public class SortMergeOperator extends JoinOperator {
+    public SortMergeOperator(QueryOperator leftSource,
+                             QueryOperator rightSource,
+                             String leftColumnName,
+                             String rightColumnName,
+                             TransactionContext transaction) {
+        super(prepareLeft(transaction, leftSource, leftColumnName),
+              prepareRight(transaction, rightSource, rightColumnName),
+              leftColumnName, rightColumnName, transaction, JoinType.SORTMERGE);
+        this.stats = this.estimateStats();
     }
 
-    private class RecordComparator implements Comparator<Record> {
-        @Override
-        public int compare(Record r1, Record r2) {
-            return r1.getValue(sortColumnIndex).compareTo(r2.getValue(sortColumnIndex));
+    /**
+     * If the left source is already sorted on the target column then this
+     * returns the leftSource, otherwise it wraps the left source in a sort
+     * operator.
+     */
+    private static QueryOperator prepareLeft(TransactionContext transaction,
+                                             QueryOperator leftSource,
+                                             String leftColumn) {
+        leftColumn = leftSource.getSchema().matchFieldName(leftColumn);
+        if (leftSource.sortedBy().contains(leftColumn)) return leftSource;
+        return new SortOperator(transaction, leftSource, leftColumn);
+    }
+
+    /**
+     * If the right source isn't sorted, wraps the right source in a sort
+     * operator. Otherwise, if it isn't materialized, wraps the right source in
+     * a materialize operator. Otherwise, simply returns the right source. Note
+     * that the right source must be materialized since we may need to backtrack
+     * over it, unlike the left source.
+     */
+    private static QueryOperator prepareRight(TransactionContext transaction,
+                                              QueryOperator rightSource,
+                                              String rightColumn) {
+        rightColumn = rightSource.getSchema().matchFieldName(rightColumn);
+        if (!rightSource.sortedBy().contains(rightColumn)) {
+            return new SortOperator(transaction, rightSource, rightColumn);
+        } else if (!rightSource.materialized()) {
+            return new MaterializeOperator(rightSource, transaction);
         }
-    }
-
-    @Override
-    public TableStats estimateStats() {
-        return getSource().estimateStats();
-    }
-
-    @Override
-    public Schema computeSchema() {
-        return getSource().getSchema();
-    }
-
-    @Override
-    public int estimateIOCost() {
-        int N = getSource().estimateStats().getNumPages();
-        double pass0Runs = Math.ceil(N / (double)numBuffers);
-        double numPasses = 1 + Math.ceil(Math.log(pass0Runs) / Math.log(numBuffers - 1));
-        return (int) (2 * N * numPasses) + getSource().estimateIOCost();
-    }
-
-    @Override
-    public String str() {
-        return "Sort (cost=" + estimateIOCost() + ")";
-    }
-
-    @Override
-    public List<String> sortedBy() {
-        return Collections.singletonList(sortColumnName);
-    }
-
-    @Override
-    public boolean materialized() { return true; }
-
-    @Override
-    public BacktrackingIterator<Record> backtrackingIterator() {
-        if (this.sortedRecords == null) this.sortedRecords = sort();
-        return sortedRecords.iterator();
+        return rightSource;
     }
 
     @Override
     public Iterator<Record> iterator() {
-        return backtrackingIterator();
+        return new SortMergeIterator();
+    }
+
+    @Override
+    public List<String> sortedBy() {
+        return Arrays.asList(getLeftColumnName(), getRightColumnName());
+    }
+
+    @Override
+    public int estimateIOCost() {
+        //does nothing
+        return 0;
     }
 
     /**
-     * Returns a Run containing records from the input iterator in sorted order.
-     * You're free to use an in memory sort over all the records using one of
-     * Java's built-in sorting methods.
+     * An implementation of Iterator that provides an iterator interface for this operator.
+     *    See lecture slides.
      *
-     * @return a single sorted run containing all the records from the input
-     * iterator
+     * Before proceeding, you should read and understand SNLJOperator.java
+     *    You can find it in the same directory as this file.
+     *
+     * Word of advice: try to decompose the problem into distinguishable sub-problems.
+     *    This means you'll probably want to add more methods than those given (Once again,
+     *    SNLJOperator.java might be a useful reference).
+     *
      */
-    public Run sortRun(Iterator<Record> records) {
-        // TODO(proj3_part1): implement
-        List<Record> sort = new ArrayList<>();
-        while (records.hasNext()) {
-            sort.add(records.next());
-        }
-        sort.sort(comparator);
-        Run r = makeRun();
-        r.addAll(sort);
-        return r;
-    }
+    private class SortMergeIterator implements Iterator<Record> {
+        /**
+        * Some member variables are provided for guidance, but there are many possible solutions.
+        * You should implement the solution that's best for you, using any member variables you need.
+        * You're free to use these member variables, but you're not obligated to.
+        */
+        private Iterator<Record> leftIterator;
+        private BacktrackingIterator<Record> rightIterator;
+        private Record leftRecord;
+        private Record nextRecord;
+        private Record rightRecord;
+        private boolean marked;
 
-    /**
-     * Given a list of sorted runs, returns a new run that is the result of
-     * merging the input runs. You should use a Priority Queue (java.util.PriorityQueue)
-     * to determine which record should be added to the output run
-     * next.
-     *
-     * You are NOT allowed to have more than runs.size() records in your
-     * priority queue at a given moment. It is recommended that your Priority
-     * Queue hold Pair<Record, Integer> objects where a Pair (r, i) is the
-     * Record r with the smallest value you are sorting on currently unmerged
-     * from run i. `i` can be useful to locate which record to add to the queue
-     * next after the smallest element is removed.
-     *
-     * @return a single sorted run obtained by merging the input runs
-     */
-    public Run mergeSortedRuns(List<Run> runs) {
-        assert (runs.size() <= this.numBuffers - 1);
-        // TODO(proj3_part1): implement
-        PriorityQueue<Pair<Record, Integer>> queue = new PriorityQueue<>(new RecordPairComparator());
-        Run merge = makeRun();
-        List<Iterator<Record>> iterators = new ArrayList<>();
+        private SortMergeIterator() {
+            super();
+            leftIterator = getLeftSource().iterator();
+            rightIterator = getRightSource().backtrackingIterator();
+            rightIterator.markNext();
 
-        for (Run run : runs) {
-            iterators.add(run.iterator());
-        }
-
-        // Add all the first record of each runs to the priority queue.
-        for (int i = 0; i < iterators.size(); i++) {
-            Iterator<Record> iter = iterators.get(i);
-            if (iter.hasNext()) {
-                Pair<Record, Integer> p = new Pair<>(iter.next(), i);
-                queue.add(p);
+            if (leftIterator.hasNext() && rightIterator.hasNext()) {
+                leftRecord = leftIterator.next();
+                rightRecord = rightIterator.next();
             }
+
+            this.marked = false;
         }
 
-        while (!queue.isEmpty()) {
-            Pair<Record, Integer> pair = queue.remove();
-            merge.add(pair.getFirst());
-            int index = pair.getSecond();
-            Iterator<Record> iter = iterators.get(index);
-            if (iter.hasNext()) {
-                Pair<Record, Integer> p = new Pair<>(iter.next(), index);
-                queue.add(p);
-            }
-        }
-
-        return merge;
-    }
-
-    /**
-     * Compares the two (record, integer) pairs based only on the record
-     * component using the default comparator. You may find this useful for
-     * implementing mergeSortedRuns.
-     */
-    private class RecordPairComparator implements Comparator<Pair<Record, Integer>> {
+        /**
+         * @return true if this iterator has another record to yield, otherwise
+         * false
+         */
         @Override
-        public int compare(Pair<Record, Integer> o1, Pair<Record, Integer> o2) {
-            return SortOperator.this.comparator.compare(o1.getFirst(), o2.getFirst());
+        public boolean hasNext() {
+            if (this.nextRecord == null) this.nextRecord = fetchNextRecord();
+            return this.nextRecord != null;
         }
-    }
 
-    /**
-     * Given a list of N sorted runs, returns a list of sorted runs that is the
-     * result of merging (numBuffers - 1) of the input runs at a time. If N is
-     * not a perfect multiple of (numBuffers - 1) the last sorted run should be
-     * the result of merging less than (numBuffers - 1) runs.
-     *
-     * @return a list of sorted runs obtained by merging the input runs
-     */
-    public List<Run> mergePass(List<Run> runs) {
-        // TODO(proj3_part1): implement
-        List<Run> run = new ArrayList<>();
-        List<Run> merge = new ArrayList<>();
-        while (!runs.isEmpty()) {
-            while (!runs.isEmpty() && merge.size() < numBuffers - 1) {
-                merge.add(runs.remove(0));
+        /**
+         * @return the next record from this iterator
+         * @throws NoSuchElementException if there are no more records to yield
+         */
+        @Override
+        public Record next() {
+            if (!this.hasNext()) throw new NoSuchElementException();
+            Record nextRecord = this.nextRecord;
+            this.nextRecord = null;
+            return nextRecord;
+        }
+
+        /**
+         * Returns the next record that should be yielded from this join,
+         * or null if there are no more records to join.
+         */
+        private Record fetchNextRecord() {
+            // TODO(proj3_part1): implement
+            if (leftRecord == null) {
+                return null;
             }
-            run.add(mergeSortedRuns(merge));
-            merge.clear();
+
+            while (leftRecord != null) {
+                if (rightRecord != null && !marked) {
+                    while (compare(leftRecord, rightRecord) < 0) {
+                        if (leftIterator.hasNext()) {
+                            leftRecord = leftIterator.next();
+                        } else {
+                            leftRecord = null;
+                            return null;
+                        }
+                    }
+
+                    while (compare(leftRecord, rightRecord) > 0) {
+                        if (rightIterator.hasNext()) {
+                            rightRecord = rightIterator.next();
+                        } else {
+                            rightRecord = null;
+                            break;
+                        }
+                    }
+
+                    rightIterator.markPrev();
+                    marked = true;
+                }
+
+                if (rightRecord != null && compare(leftRecord, rightRecord) == 0) {
+                    Record match = leftRecord.concat(rightRecord);
+                    rightRecord = rightIterator.hasNext() ? rightIterator.next() : null;
+                    return match;
+                } else {
+                    leftRecord = leftIterator.hasNext() ? leftIterator.next() : null;
+                    rightIterator.reset();
+                    marked = false;
+                    rightRecord = rightIterator.hasNext() ? rightIterator.next() : null;
+                }
+            }
+
+            return null;
         }
 
-        return run;
-    }
-
-    /**
-     * Does an external merge sort over the records of the source operator.
-     * You may find the getBlockIterator method of the QueryOperator class useful
-     * here to create your initial set of sorted runs.
-     *
-     * @return a single run containing all of the source operator's records in
-     * sorted order.
-     */
-    public Run sort() {
-        // Iterator over the records of the relation we want to sort
-        Iterator<Record> sourceIterator = getSource().iterator();
-
-        // TODO(proj3_part1): implement
-        List<Run> merge = new ArrayList<>();
-        while (sourceIterator.hasNext()) {
-            Run externalMerge = sortRun(getBlockIterator(sourceIterator, getSchema(), numBuffers));
-            merge.add(externalMerge);
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
         }
-        for (int i = 0; i < merge.size() - 1; i++) {
-            merge = mergePass(merge);
-        }
-        return merge.get(0);
-    }
-
-    /**
-     * @return a new empty run.
-     */
-    public Run makeRun() {
-        return new Run(this.transaction, getSchema());
-    }
-
-    /**
-     * @param records
-     * @return A new run containing the records in `records`
-     */
-    public Run makeRun(List<Record> records) {
-        Run run = new Run(this.transaction, getSchema());
-        run.addAll(records);
-        return run;
     }
 }
-
