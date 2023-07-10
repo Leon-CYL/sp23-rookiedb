@@ -931,7 +931,24 @@ public class Database implements AutoCloseable {
         public void close() {
             try {
                 // TODO(proj4_part2)
-                return;
+                Deque<LockContext> q = new ArrayDeque<>();
+                List<Lock> locks = lockManager.getLocks(getTransaction());
+                for (Lock lock : locks) {
+                    ResourceName name = lock.name;
+                    LockContext lc = LockContext.fromResourceName(lockManager, name);
+                    if (lc.getNumChildren(this) == 0) {
+                        q.addLast(lc);
+                    }
+                }
+                while (q.size() > 0) {
+                    LockContext h = q.getFirst();
+                    q.removeFirst();
+                    h.release(this);
+                    if (h.parentContext() != null
+                            && h.parentContext().getNumChildren(this) == 0) {
+                        q.addLast(h.parentContext());
+                    }
+                }
             } catch (Exception e) {
                 // There's a chance an error message from your release phase
                 // logic can get suppressed. This guarantees that the stack
