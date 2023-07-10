@@ -12,9 +12,9 @@ public class LockUtil {
     /**
      * Ensure that the current transaction can perform actions requiring
      * `requestType` on `lockContext`.
-     *
+     * <p>
      * `requestType` is guaranteed to be one of: S, X, NL.
-     *
+     * <p>
      * This method should promote/escalate/acquire as needed, but should only
      * grant the least permissive set of locks needed. We recommend that you
      * think about what to do in each of the following cases:
@@ -22,9 +22,9 @@ public class LockUtil {
      * - The current lock type is IX and the requested lock is S
      * - The current lock type is an intent lock
      * - None of the above: In this case, consider what values the explicit
-     *   lock type can be, and think about how ancestor looks will need to be
-     *   acquired or changed.
-     *
+     * lock type can be, and think about how ancestor looks will need to be
+     * acquired or changed.
+     * <p>
      * You may find it useful to create a helper method that ensures you have
      * the appropriate locks on all ancestors.
      */
@@ -42,8 +42,55 @@ public class LockUtil {
         LockType explicitLockType = lockContext.getExplicitLockType(transaction);
 
         // TODO(proj4_part2): implement
-        return;
+        if (LockType.substitutable(explicitLockType, requestType)) {
+            return;
+        }
+
+        if (LockType.substitutable(effectiveLockType, requestType)) {
+            return;
+        }
+
+        if (parentContext != null) {
+            LockType parentLock = LockType.parentLock(requestType);
+            ensureAncestorLock(parentContext, parentLock, transaction);
+        }
+
+        if (explicitLockType == LockType.IX && requestType == LockType.S) {
+            lockContext.promote(transaction, LockType.SIX);
+            return;
+        }
+
+        if (explicitLockType.isIntent()) {
+            lockContext.escalate(transaction);
+            return;
+        }
+
+        if (explicitLockType == LockType.NL) {
+            lockContext.acquire(transaction, requestType);
+        } else {
+            lockContext.promote(transaction, requestType);
+        }
     }
 
     // TODO(proj4_part2) add any helper methods you want
+    private static void ensureAncestorLock(LockContext parent, LockType requestType, TransactionContext transaction) {
+        if (parent == null || requestType == null) {
+            return;
+        }
+        LockType effectiveLockType = parent.getEffectiveLockType(transaction);
+        LockType explicitLockType = parent.getExplicitLockType(transaction);
+        if (LockType.substitutable(explicitLockType, requestType)
+                || LockType.substitutable(effectiveLockType, requestType)) {
+            return;
+        }
+        LockContext grandContext = parent.parentContext();
+        LockType grandLock = LockType.parentLock(requestType);
+        ensureAncestorLock(grandContext, grandLock, transaction);
+        if (explicitLockType == LockType.NL) {
+            parent.acquire(transaction, requestType);
+        } else {
+            parent.promote(transaction, requestType);
+
+        }
+    }
 }
