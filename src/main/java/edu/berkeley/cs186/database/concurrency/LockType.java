@@ -23,8 +23,31 @@ public enum LockType {
         }
         // TODO(proj4_part1): implement
 
-        return false;
+        if (a == NL || b == NL) {
+            return true;
+        }
+
+        // case X is always false if b is not equal to lock type NL and since we already take care of the lock type Nl,
+        // so we ignore case X here.
+        switch(a){
+            case IS:
+                return !(b == X);
+
+            case IX:
+                return (b == IX || b == IS);
+
+            case S:
+                return (b == IS || b == S);
+
+            case SIX:
+                return (b == IS);
+
+            default:
+                return false;
+        }
+
     }
+
 
     /**
      * This method returns the lock on the parent resource
@@ -54,6 +77,20 @@ public enum LockType {
             throw new NullPointerException("null lock type");
         }
         // TODO(proj4_part1): implement
+        if (parentLockType.equals(childLockType) || childLockType == NL) {
+            return true;
+        }
+
+        if (parentLockType == NL) {
+            return false;
+        }
+
+        if (childLockType == S || childLockType == IS) {
+            return parentLockType == IS || parentLockType == IX;
+        }
+        if (childLockType == X || childLockType == IX || childLockType == SIX) {
+            return parentLockType == IX || parentLockType == SIX;
+        }
 
         return false;
     }
@@ -69,8 +106,26 @@ public enum LockType {
             throw new NullPointerException("null lock type");
         }
         // TODO(proj4_part1): implement
+        if (required == substitute) {
+            return true;
+        }
+        if (required == LockType.X) {
+            return false;
+        }
+        if (required == LockType.SIX && LockType.X != substitute) {
+            return false;
+        }
+        if (required == LockType.S && LockType.SIX != substitute && LockType.X != substitute) {
+            return false;
+        }
+        if (required == LockType.IX && (substitute == LockType.IS || substitute == LockType.NL)) {
+            return false;
+        }
+        if (required == LockType.IS && substitute == LockType.NL) {
+            return false;
+        }
 
-        return false;
+        return true;
     }
 
     /**
