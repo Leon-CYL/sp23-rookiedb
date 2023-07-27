@@ -48,6 +48,6 @@ In the Concurrency project, I implement a manager system to process the lock req
 
 ### Recovery:
 
-In the Recovery project, I implement a Aries Recover manager system to keep track of the log records and recover the database when it is crash.
+In the Recovery project, I implement a Aries Recover manager system to keep track of the log records and recover the database when it is crashed.
 
 > - [ARIESRecoveryManager.java](https://github.com/Leon123-Lin/sp23-rookiedb/blob/main/src/main/java/edu/berkeley/cs186/database/recovery/ARIESRecoveryManager.java): A manager system that keep track of the log records and recover the database when it is necessary.
