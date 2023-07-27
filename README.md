@@ -31,7 +31,7 @@ and [BPlusTree.java](https://github.com/Leon123-Lin/sp23-rookiedb/blob/main/src/
 
 ### Joins and Query Optimization:
 
-In the Joins and Query Optimization project, I implemented different join algorithms to join the table and algorithm to form an optimal query plan.
+In the Joins and Query Optimization project, I implemented different join algorithms to join the tables and algorithm to form an optimal query plan.
 
 > - [BNLJOperator.java](https://github.com/Leon123-Lin/sp23-rookiedb/blob/main/src/main/java/edu/berkeley/cs186/database/query/join/BNLJOperator.java): The block nested loop join algorithm.
 > - [SortMergeOperator.java](https://github.com/Leon123-Lin/sp23-rookiedb/blob/main/src/main/java/edu/berkeley/cs186/database/query/join/SortMergeOperator.java): The sort merge join algorithm.
