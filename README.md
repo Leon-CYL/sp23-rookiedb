@@ -42,12 +42,12 @@ In the Joins and Query Optimization project, I implemented different join algori
 
 In the Concurrency project, I implement a manager system to process the lock requests from different transactions.
 
-> - [LockType.java](): Check whether two lock types are compatible, can be a parent and substitutable.
-> - [LockManager.java](): A manager system that keep track of the lock request and will decide whether add a lock request to the queue or process it.
+> - [LockType.java](https://github.com/Leon123-Lin/sp23-rookiedb/blob/main/src/main/java/edu/berkeley/cs186/database/concurrency/LockType.java): Check whether two lock types are compatible, can be a parent and substitutable.
+> - [LockManager.java](https://github.com/Leon123-Lin/sp23-rookiedb/blob/main/src/main/java/edu/berkeley/cs186/database/concurrency/LockManager.java): A manager system that keep track of the lock request and will decide whether add a lock request to the queue or process it.
 
 
 ### Recovery:
 
 In the Recovery project, I implement a Aries Recover manager system to keep track of the log records and recover the database when it is crash.
 
-> - [ARIESRecoveryManager.java](): A manager system that keep track of the log records and recover the database when it is necessary.
+> - [ARIESRecoveryManager.java](https://github.com/Leon123-Lin/sp23-rookiedb/blob/main/src/main/java/edu/berkeley/cs186/database/recovery/ARIESRecoveryManager.java): A manager system that keep track of the log records and recover the database when it is necessary.
