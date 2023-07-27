@@ -18,11 +18,11 @@
 
 In the B+ Trees project, I implemented the following methods:
 
-> - get: return the corresponding leafnode of the B+ tree with the given key.
-> - getLeftMostLeaf: return the left most leafnode of the B+ tree.
-> - put: add a new key-record pair to the B+ tree.
-> - remove: remove an exist key-record pair from the B+ tree.
-> - bulkLoad: load pairs of the key-record pair into a B+ tree with a given load factor(<= 1.0).
+> - <span style="color: green">get</span>: return the corresponding leafnode of the B+ tree with the given key.
+> - <span style="color: green">getLeftMostLeaf</span>: return the left most leafnode of the B+ tree.
+> - <span style="color: green">put</span>: add a new key-record pair to the B+ tree.
+> - <span style="color: green">remove</span>: remove an exist key-record pair from the B+ tree.
+> - <span style="color: green">bulkLoad</span>: load pairs of the key-record pair into a B+ tree with a given load factor(<= 1.0).
 
 in [LeafNode.java](https://github.com/Leon123-Lin/sp23-rookiedb/blob/main/src/main/java/edu/berkeley/cs186/database/index/LeafNode.java), 
 [InnerNode.java](https://github.com/Leon123-Lin/sp23-rookiedb/blob/main/src/main/java/edu/berkeley/cs186/database/index/InnerNode.java) 
