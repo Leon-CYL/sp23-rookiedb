@@ -3,7 +3,7 @@
 ## Overview:
 
 > This is an intro database system(Spring 2023 version) course from UC Berkeley that I self learned in my personal time.
-> Throughout this course, I read through all the notes on the course website and implemented 4 different components to support the Rookie Database. 
+> Throughout this course, I read through all the notes on the course website and implemented 4 different components to support the functions of the Rookie Database. 
 
 ## Projects(spec):
 
