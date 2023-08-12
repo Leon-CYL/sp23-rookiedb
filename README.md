@@ -2,8 +2,8 @@
 
 ## Overview:
 
-> This is an [intro database system](https://cs186berkeley.net/)(Spring 2023 version) course from UC Berkeley that I self learned in my personal time.
-> Throughout this course, I read all the notes on the course website and finished all the projects related to the Rookie Database. 
+> This is an intro database system(Spring 2023 version) course from UC Berkeley that I self learned in my personal time.
+> Throughout this course, I read through all the notes on the course website and implemented 4 different components to support the Rookie Database. 
 
 ## Projects(spec):
 
