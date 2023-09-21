@@ -89,7 +89,7 @@ public class BPlusTree {
     public BPlusTree(BufferManager bufferManager, BPlusTreeMetadata metadata, LockContext lockContext) {
         // Prevent child locks - we only lock the entire tree as a whole.
         lockContext.disableChildLocks();
-        // By default we want to read the whole tree
+        // By default, we want to read the whole tree
         LockUtil.ensureSufficientLockHeld(lockContext, LockType.S);
 
         // Sanity checks.
@@ -462,10 +462,7 @@ public class BPlusTree {
         @Override
         public boolean hasNext() {
             // TODO(proj2): implement
-            if (rids.hasNext() || leaf.getRightSibling().isPresent()) {
-                return true;
-            }
-            return false;
+            return (rids.hasNext() || leaf.getRightSibling().isPresent());
         }
 
         @Override

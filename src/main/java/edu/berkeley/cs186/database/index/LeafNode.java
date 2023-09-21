@@ -147,7 +147,6 @@ class LeafNode extends BPlusNode {
     @Override
     public LeafNode get(DataBox key) {
         // TODO(proj2): implement
-
         return this;
     }
 
@@ -181,7 +180,7 @@ class LeafNode extends BPlusNode {
         List<DataBox> rightKeys = keys.subList(order, 2 * order + 1);
         List<RecordId> rightRids = rids.subList(order, 2 * order + 1);
 
-        LeafNode rightLeaf = new LeafNode(metadata, bufferManager, rightKeys, rightRids,rightSibling, treeContext);
+        LeafNode rightLeaf = new LeafNode(metadata, bufferManager, rightKeys, rightRids, rightSibling, treeContext);
         long pageNum = rightLeaf.getPage().getPageNum();
         this.keys = keys.subList(0, order);
         this.rids = rids.subList(0, order);
