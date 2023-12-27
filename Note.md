@@ -6,10 +6,16 @@
 
 ## Overview:
 
-- ### What is Database Management System?
+> There are five main components inside the Database Management Systems:
 
-> 
+![Database](management.png)
+1. Query Parsing & Optimization
+2. Relational Operators
+3. Files and index Management
+4. Buffer Management
+5. Disk Space management
 
+> Numbered from the highest level to the lowest level of the Database Management System(DBMS).
 
 
 
