@@ -1,4 +1,4 @@
-# CS 186: Introduction to Database System
+# CS 186: Introduction to Database Systems
 
 ## Overview:
 
