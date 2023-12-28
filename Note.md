@@ -17,7 +17,7 @@
 
 > Numbered from the highest level to the lowest level of the Database Management System(DBMS).
 
-## 1. Disk Space Management
+## 1. Disks and Files
 
 ### Disk
 > - Disks are used to cheaply store all of a database’s data, but they incur a large cost whenever data is accessed or new data is written.
@@ -34,10 +34,24 @@
 > - The basic unit of data for relational databases is a `record (row)`. These records are organized into `relations (tables)` and can be `modified`, `deleted`, `searched`, or `created` in memory.
 > - Each relation is stored in its own file and its records are organized into pages in the file in relation database.
 > - Based on the relation’s schema and access pattern, the database will determine:
-> 1. type of file used
-> 2. how pages are organized in the file
-> 3. how records are organized on each page
-> 4. how each record is formatted
+> 1. Type of file used
+> 2. How pages are organized in the file
+> 3. How records are organized on each page
+> 4. How each record is formatted
+
+### Files Type
+
+- Heap File
+
+1. LinkedList Implementation:
+> - In the linked list implementation, each data page contains `records`, a `free space tracker`, and `pointers` (byte offsets) to the `next` and `previous` page.
+> - When space is needed, empty pages are allocated and appended to the free pages portion of the list.
+> - When free data pages become full, they are moved from the free space portion to the front of the full pages portion of the linked list.
+![LinkedListFile](LinkedList.png)
+
+2. Page Directory Implementation:
+> - 
+
 
 
 
